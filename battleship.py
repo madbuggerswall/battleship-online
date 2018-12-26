@@ -251,8 +251,8 @@ else:
 	print("Invalid arguments.")
 	sys.exit()
 
-	hostName = input("Please enter your name: ")
-	opponentName = None
+hostName = input("Please enter your name: ")
+opponentName = None
 
 # Host player
 if(isHost):
@@ -284,7 +284,7 @@ else:
 	clientSocket.send(pickle.dumps(hostName))
 	opponentName = pickle.loads(clientSocket.recv(1024))
 	
-	print("Player connected! Address: ", clientAddress, "\n")
+	print("Player connected! Address: ", serverAddress, "\n")
 	print("Opponent name: ", opponentName, "\n")
 
 	clientPlayer = Player()
