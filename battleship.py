@@ -133,15 +133,15 @@ class Player:
 				print("Invalid position format.")
 				continue
 
-			if position[0] > 9 or position[1] > 9:
-				print("Position outside of the grid")
-
 			try:
 				position[0] = int(position[0])
 				position[1] = int(position[1])
 			except: 
 				print("Inputs must be an integer.")
 				continue
+				
+			if position[0] > 9 or position[1] > 9:
+				print("Position outside of the grid")
 			break
 		return position
 
