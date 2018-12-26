@@ -122,6 +122,7 @@ class Game:
 	pass
 
 	
+isHost = False
 if len(sys.argv) == 2:
 	isHost = True
 	port = int(sys.argv[1])
