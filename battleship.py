@@ -106,9 +106,9 @@ class Player:
 				print("First two inputs must be an integer.")
 				continue
 		
-			if position[2] == "H":
+			if position[2] == "H" or position[2] == "h":
 				position[2] = True
-			elif position[2] == "V":
+			elif position[2] == "V" or position[2] == "v":
 				position[2] = False
 			else:
 				print("Last input must be H or V")
@@ -183,15 +183,12 @@ if(isHost):
 	gameSession.hostReady = True
 	gameSessionData = pickle.dumps(gameSession)
 	connection.send(gameSessionData)
-	gameSessionData = connection.recv(1024)
+	gameSessionData = connection.recv(4096)
 	gameSession = pickle.loads(gameSessionData)
 
 	print(gameSession.hostReady)
 	print(gameSession.clientReady)
 
-	while True:
-		connection.send(pieceData)
-		connection.recv(1024)
 	connection.close()
 else:
 	clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -203,7 +200,7 @@ else:
 	gameSession.clientReady = True
 	gameSessionData = pickle.dumps(gameSession)
 	clientSocket.send(gameSessionData)
-	gameSessionData = clientSocket.recv(1024)
+	gameSessionData = clientSocket.recv(4096)
 	gameSession = pickle.loads(gameSessionData)
 
 	print(gameSession.hostReady)
