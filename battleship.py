@@ -164,7 +164,7 @@ def shootByTurns(player, connection):
 	opponentGrid = numpy.zeros(shape=(10,10))
 
 	while not(isGameOver):
-		while player.isTurn:
+		while player.isTurn and not(isGameOver):
 			# Get shoot position from player.
 			shotPos = player.getShotInput()
 
@@ -198,7 +198,7 @@ def shootByTurns(player, connection):
 				print("Shot already made.")
 				continue
 			
-		while not(player.isTurn):
+		while not(player.isTurn) and not(isGameOver):
 			shotRecievedData = connection.recv(1024)
 			shotRecieved = pickle.loads(shotRecievedData)
 			
@@ -219,7 +219,7 @@ def shootByTurns(player, connection):
 				player.grid[shotRecieved[0]][shotRecieved[1]] = 4
 				connection.send(pickle.dumps(0))
 				player.isTurn = True
-			print("Your Grid")			
+			print("\nYour Grid\n")			
 			print(player.grid, "\n")
 
 # Handling the command line arguments
