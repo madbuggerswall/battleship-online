@@ -158,7 +158,10 @@ class Player:
 		return position
 	
 # End of classes
+
+#	Colorfully display grid
 def displayGrid(grid):
+	print()
 	for col in range (0, grid.shape[1]):
 		print("  ", col, end='')
 	print()
@@ -173,11 +176,10 @@ def displayGrid(grid):
 				print("\x1b[0;37;41m","X", "\x1b[0m" ,end=' ')
 			if grid[row][col] == 8:
 				print("\x1b[0;37;42m","H", "\x1b[0m" ,end=' ')
-		print()
-		print()
+		print("\n")
 
 # Handles shot send/recv operations.
-def shootByTurns(player, connection):
+def shootByTurns(player, connection, hostName,opponentName):
 	isGameOver = False
 	opponentGrid = numpy.zeros(shape=(10,10))
 
@@ -187,21 +189,19 @@ def shootByTurns(player, connection):
 			shotPos = player.getShotInput()
 
 			# Send position to opponent.
-			shotPosData = pickle.dumps(shotPos)
-			connection.send(shotPosData)
+			connection.send(pickle.dumps(shotPos))
 
 			# Opponent sends back whether the sent position was a hit or not.
-			hitOrMissData = connection.recv(1024)
-			hitOrMiss = pickle.loads(hitOrMissData)
+			hitOrMiss = pickle.loads(connection.recv(1024))
 
 			# If it is a hit player gets to shoot one more time.
 			if hitOrMiss == 1:
 				opponentGrid[shotPos[0]][shotPos[1]] = 8
-				print("\nOpponent Grid\n")
+				print("\n", opponentName, "'s Grid", "\n")
 				displayGrid(opponentGrid)
 				player.totalHits += 1
 				if player.totalHits >= player.unitCount:
-					print("You won!")
+					print(hostName, " won!")
 					isGameOver = True
 					player.isTurn = False
 				continue
@@ -209,23 +209,22 @@ def shootByTurns(player, connection):
 				# If it's not a hit, player's turn ends.
 				opponentGrid[shotPos[0]][shotPos[1]] = 4
 				player.isTurn = False
-				print("\nOpponent Grid\n")
+				print("\n", opponentName, "'s Grid", "\n")
 				displayGrid(opponentGrid)
-				print("\nWaiting for other player.\n")
+				print("\nWaiting for ", opponentName, ".\n")
 			else:
 				print("Shot already made.")
 				continue
 			
 		while not(player.isTurn) and not(isGameOver):
-			shotRecievedData = connection.recv(1024)
-			shotRecieved = pickle.loads(shotRecievedData)
+			shotRecieved = pickle.loads(connection.recv(1024))
 			
 			# Check if shot made by opponent was a hit or not, send back the result.
 			if player.grid[shotRecieved[0]][shotRecieved[1]] == 1:
 				player.grid[shotRecieved[0]][shotRecieved[1]] = 8
 				player.unitsLeft -= 1
 				if player.unitsLeft <= 0:
-					print("You lost!")
+					print(hostName," lost!")
 					isGameOver = True
 				connection.send(pickle.dumps(1))
 			elif player.grid[shotRecieved[0]][shotRecieved[1]] == 4:
@@ -237,7 +236,7 @@ def shootByTurns(player, connection):
 				player.grid[shotRecieved[0]][shotRecieved[1]] = 4
 				connection.send(pickle.dumps(0))
 				player.isTurn = True
-			print("\nYour Grid\n")			
+			print("\n", hostName, "'s Grid", "\n")
 			displayGrid(player.grid)
 
 # Handling the command line arguments
@@ -252,6 +251,9 @@ else:
 	print("Invalid arguments.")
 	sys.exit()
 
+	hostName = input("Please enter your name: ")
+	opponentName = None
+
 # Host player
 if(isHost):
 	serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -260,13 +262,18 @@ if(isHost):
 
 	print("Waiting for player...\n")
 	(connection, clientAddress) = serverSocket.accept()
+
+	connection.send(pickle.dumps(hostName))
+	opponentName = pickle.loads(connection.recv(1024))
+
 	print("Player connected! Address: ", clientAddress, "\n")
+	print("Opponent name: ", opponentName, "\n")
 
 	hostPlayer = Player()
 	hostPlayer.initBoard()
 	hostPlayer.isTurn = True
 
-	shootByTurns(hostPlayer, connection)
+	shootByTurns(hostPlayer, connection, hostName, opponentName)
 	connection.close()
 else:
 # Client player
@@ -274,8 +281,14 @@ else:
 	serverAddress = hostIP, port
 	clientSocket.connect(serverAddress)
 
+	clientSocket.send(pickle.dumps(hostName))
+	opponentName = pickle.loads(clientSocket.recv(1024))
+	
+	print("Player connected! Address: ", clientAddress, "\n")
+	print("Opponent name: ", opponentName, "\n")
+
 	clientPlayer = Player()
 	clientPlayer.initBoard()
 
-	shootByTurns(clientPlayer, clientSocket)
+	shootByTurns(clientPlayer, clientSocket, hostName, opponentName)
 	clientSocket.close()
