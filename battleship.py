@@ -43,6 +43,8 @@ class Player:
 	def __init__(self):
 		self.isTurn = False
 		self.unitsLeft = None
+		self.unitCount = None
+		self.totalHits = 0
 		self.grid = numpy.zeros(shape=(10,10))
 		self.piecesPlaced = []
 	
@@ -97,6 +99,7 @@ class Player:
 				self.placePiece(piece(pos[2]), (pos[0], pos[1]))
 			print(self.grid)
 		self.unitsLeft = self.countUnits()
+		self.unitCount = self.countUnits()
 
 	def getPosInput(self):
 		while True:
@@ -145,18 +148,54 @@ class Player:
 			break
 		return position
 
-class GameSession:
+# End of classes
 
-	def __init__(self):
-		self.hostReady = False
-		self.clientReady = False
+def shootOnline(player, connection):
+	isGameOver = False
+	opponentGrid = numpy.zeros(shape=(10,10))
 
-		self.hostUnits = 14
-		self.clientUnits = 14
+	while not(isGameOver):
+		while player.isTurn:
+			shotPos = player.getShotInput()
 
-		self.hostGrid = numpy.zeros(shape=(10,10))
-		self.clientGrid = numpy.zeros(shape=(10,10))
+			shotPosData = pickle.dumps(shotPos)
+			connection.send(shotPosData)
 
+			hitOrMissData = connection.recv(1024)
+			hitOrMiss = pickle.loads(hitOrMissData)
+
+			if hitOrMiss:
+				opponentGrid[shotPos[0]][shotPos[1]] = 8
+				print(opponentGrid)
+				player.totalHits += 1
+				if player.totalHits >= player.unitCount:
+					print("You won!")
+					isGameOver = True
+				continue
+			else:
+				opponentGrid[shotPos[0]][shotPos[1]] = 4
+				player.isTurn = False
+				print(opponentGrid)
+				print("Waiting for other player")
+			
+		while not(player.isTurn):
+			shotRecievedData = connection.recv(1024)
+			shotRecieved = pickle.loads(shotRecievedData)
+			
+			if player.grid[shotRecieved[0]][shotRecieved[1]] == 1:
+				player.grid[shotRecieved[0]][shotRecieved[1]] = 8
+				player.unitsLeft -= 1
+				if player.unitsLeft <= 0:
+					print("You lost!")
+					isGameOver = True
+				connection.send(pickle.dumps(True))
+			else:
+				player.grid[shotRecieved[0]][shotRecieved[1]] = 4
+				connection.send(pickle.dumps(False))
+				player.isTurn = True
+			print(player.grid)
+
+#	Main
 
 isHost = False
 if len(sys.argv) == 2:
@@ -169,11 +208,6 @@ else:
 	print("Invalid arguments.")
 	sys.exit()
 
-# End of classes
-
-isGameOver = False
-gameSession = GameSession()
-opponentGrid = numpy.zeros(shape=(10,10))
 
 if(isHost):
 	serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -188,35 +222,8 @@ if(isHost):
 	hostPlayer.initBoard()
 	hostPlayer.isTurn = True
 
-	while not(isGameOver):
-		while hostPlayer.isTurn:
-			shotPos = hostPlayer.getShotInput()
-			shotPosData = pickle.dumps(shotPos)
-			connection.send(shotPosData)
-			hitOrMissData = connection.recv(1024)
-			hitOrMiss = pickle.loads(hitOrMissData)
-			if hitOrMiss:
-				opponentGrid[shotPos[0]][shotPos[1]] = 8
-				print(opponentGrid)
-				continue
-			else:
-				opponentGrid[shotPos[0]][shotPos[1]] = 4
-				hostPlayer.isTurn = False
-				print(opponentGrid)
-				print("Waiting for other player")
-			
-		while not(hostPlayer.isTurn):
-			shotRecievedData = connection.recv(1024)
-			shotRecieved = pickle.loads(shotRecievedData)
-			if hostPlayer.grid[shotRecieved[0]][shotRecieved[1]] == 1:
-				connection.send(pickle.dumps(True))
-				hostPlayer.unitsLeft -= 1
-			else:
-				connection.send(pickle.dumps(False))
-				hostPlayer.isTurn = True
-	
-
-
+	shootOnline(hostPlayer, connection)
+	connection.close()
 else:
 	clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	serverAddress = hostIP, port
@@ -225,29 +232,5 @@ else:
 	clientPlayer = Player()
 	clientPlayer.initBoard()
 
-	while not(isGameOver):
-		while clientPlayer.isTurn:
-			shotPos = clientPlayer.getShotInput()
-			shotPosData = pickle.dumps(shotPos)
-			clientSocket.send(shotPosData)
-			hitOrMissData = clientSocket.recv(1024)
-			hitOrMiss = pickle.loads(hitOrMissData)
-			if hitOrMiss:
-				opponentGrid[shotPos[0]][shotPos[1]] = 8
-				print(opponentGrid)
-				continue
-			else:
-				opponentGrid[shotPos[0]][shotPos[1]] = 4
-				clientPlayer.isTurn = False
-				print(opponentGrid)
-				print("Waiting for other player")
-			
-		while not(clientPlayer.isTurn):
-			shotRecievedData = clientSocket.recv(1024)
-			shotRecieved = pickle.loads(shotRecievedData)
-			if clientPlayer.grid[shotRecieved[0]][shotRecieved[1]] == 1:
-				clientSocket.send(pickle.dumps(True))
-				clientPlayer.unitsLeft -= 1
-			else:
-				clientSocket.send(pickle.dumps(False))
-				clientPlayer.isTurn = True
+	shootOnline(clientPlayer, clientSocket)
+	clientSocket.close()
