@@ -91,7 +91,7 @@ class Player:
 			print(self.grid)
 
 	def getPosInput(self):
-		while False:
+		while True:
 			raw = input("Enter position as row,column,alignment: ")
 			position = raw.split(',')
 			
@@ -113,13 +113,14 @@ class Player:
 			else:
 				print("Last input must be H or V")
 				continue
+			break
 		return position
 
 	def shoot(self):
 		pass
 
 	def getShotInput(self):
-		while False:
+		while True:
 			raw = input("Enter the shot coordinates as row,column")
 			position = raw.split(',')
 			
@@ -136,6 +137,7 @@ class Player:
 			except: 
 				print("Inputs must be an integer.")
 				continue
+			break
 		return position
 
 class GameSession:
