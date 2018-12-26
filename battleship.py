@@ -103,7 +103,7 @@ class Player:
 				print("\nPlace ", piece.name, "(", piece.size, ") on grid.")
 				pos = self.getPosInput()
 				self.placePiece(piece(pos[2]), (pos[0], pos[1]))
-			print("\n", self.grid)
+			displayGrid(self.grid)
 		self.unitsLeft = self.countUnits()
 		self.unitCount = self.countUnits()
 
@@ -156,7 +156,25 @@ class Player:
 				print("Position outside of the grid")
 			break
 		return position
+	
 # End of classes
+def displayGrid(grid):
+	for col in range (0, grid.shape[1]):
+		print("  ", col, end='')
+	print()
+	for row in range(0, grid.shape[0]):
+		print(row, end=": ")
+		for col in range (0, grid.shape[1]):
+			if grid[row][col] == 0:
+				print("\x1b[0;37;44m"," ", "\x1b[0m" ,end=' ')
+			if grid[row][col] == 1:
+				print("\x1b[0;37;47m"," ", "\x1b[0m" ,end=' ')
+			if grid[row][col] == 4:
+				print("\x1b[0;37;41m","X", "\x1b[0m" ,end=' ')
+			if grid[row][col] == 8:
+				print("\x1b[0;37;42m","H", "\x1b[0m" ,end=' ')
+		print()
+		print()
 
 # Handles shot send/recv operations.
 def shootByTurns(player, connection):
@@ -180,7 +198,7 @@ def shootByTurns(player, connection):
 			if hitOrMiss == 1:
 				opponentGrid[shotPos[0]][shotPos[1]] = 8
 				print("\nOpponent Grid\n")
-				print(opponentGrid, "\n")
+				displayGrid(opponentGrid)
 				player.totalHits += 1
 				if player.totalHits >= player.unitCount:
 					print("You won!")
@@ -192,7 +210,7 @@ def shootByTurns(player, connection):
 				opponentGrid[shotPos[0]][shotPos[1]] = 4
 				player.isTurn = False
 				print("\nOpponent Grid\n")
-				print(opponentGrid)
+				displayGrid(opponentGrid)
 				print("\nWaiting for other player.\n")
 			else:
 				print("Shot already made.")
@@ -220,7 +238,7 @@ def shootByTurns(player, connection):
 				connection.send(pickle.dumps(0))
 				player.isTurn = True
 			print("\nYour Grid\n")			
-			print(player.grid, "\n")
+			displayGrid(player.grid)
 
 # Handling the command line arguments
 isHost = False 
