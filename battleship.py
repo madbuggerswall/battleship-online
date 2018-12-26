@@ -179,13 +179,13 @@ def shootByTurns(player, connection):
 			# If it is a hit player gets to shoot one more time.
 			if hitOrMiss == 1:
 				opponentGrid[shotPos[0]][shotPos[1]] = 8
-				print("Opponent Grid")
+				print("\nOpponent Grid\n")
 				print(opponentGrid, "\n")
 				player.totalHits += 1
 				if player.totalHits >= player.unitCount:
 					print("You won!")
 					isGameOver = True
-					break
+					player.isTurn = False
 				continue
 			elif hitOrMiss == 0: 
 				# If it's not a hit, player's turn ends.
@@ -209,7 +209,6 @@ def shootByTurns(player, connection):
 				if player.unitsLeft <= 0:
 					print("You lost!")
 					isGameOver = True
-					break
 				connection.send(pickle.dumps(1))
 			elif player.grid[shotRecieved[0]][shotRecieved[1]] == 4:
 				connection.send(pickle.dumps(2))
