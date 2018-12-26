@@ -213,6 +213,7 @@ if(isHost):
 				hostPlayer.unitsLeft -= 1
 			else:
 				connection.send(pickle.dumps(False))
+				hostPlayer.isTurn = True
 	
 
 
@@ -249,3 +250,4 @@ else:
 				clientPlayer.unitsLeft -= 1
 			else:
 				clientSocket.send(pickle.dumps(False))
+				clientPlayer.isTurn = True
