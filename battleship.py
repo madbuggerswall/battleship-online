@@ -126,10 +126,10 @@ class Player:
 
 	def getShotInput(self):
 		while True:
-			raw = input("Enter the shot coordinates as row,column")
+			raw = input("Enter the shot coordinates as row,column: ")
 			position = raw.split(',')
 			
-			if len(position) != 3:
+			if len(position) != 2:
 				print("Invalid position format.")
 				continue
 
