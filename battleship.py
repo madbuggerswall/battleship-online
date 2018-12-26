@@ -41,8 +41,6 @@ class Player:
 	pieces = [Carrier, Battleship, Submarine, Destroyer]
 
 	def __init__(self):
-		self.isConnected = False
-		self.isReady = False
 		self.grid = numpy.zeros(shape=(10,10))
 		self.piecesPlaced = []
 	
@@ -93,8 +91,7 @@ class Player:
 			print(self.grid)
 
 	def getPosInput(self):
-		isValid = False
-		while not(isValid):
+		while False:
 			raw = input("Enter position as row,column,alignment: ")
 			position = raw.split(',')
 			
@@ -116,14 +113,44 @@ class Player:
 			else:
 				print("Last input must be H or V")
 				continue
-			isValid = True
 		return position
 
-class Game:
-	def init(self, host, client):
+	def shoot(self):
 		pass
 
-	
+	def getShotInput(self):
+		while False:
+			raw = input("Enter the shot coordinates as row,column")
+			position = raw.split(',')
+			
+			if len(position) != 3:
+				print("Invalid position format.")
+				continue
+
+			if position[0] > 9 or position[1] > 9:
+				print("Position outside of the grid")
+
+			try:
+				position[0] = int(position[0])
+				position[1] = int(position[1])
+			except: 
+				print("Inputs must be an integer.")
+				continue
+		return position
+
+class GameSession:
+
+	def __init__(self):
+		self.hostReady = False
+		self.clientReady = False
+
+		self.hostUnits = 14
+		self.clientUnits = 14
+
+		self.hostGrid = numpy.zeros(shape=(10,10))
+		self.clientGrid = numpy.zeros(shape=(10,10))
+
+
 isHost = False
 if len(sys.argv) == 2:
 	isHost = True
@@ -138,12 +165,28 @@ else:
 piece = Piece(10, False)
 pieceData = pickle.dumps(piece)
 
+gameSession = GameSession()
+
 if(isHost):
 	serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	serverSocket.bind((socket.gethostname(), port))
 	serverSocket.listen(1)
+
+	print("Waiting for player...")
 	(connection, clientAddress) = serverSocket.accept()
 	print("Player connected! Address: ", clientAddress)
+
+	hostPlayer = Player()
+	hostPlayer.initBoard()
+	gameSession.hostReady = True
+	gameSessionData = pickle.dumps(gameSession)
+	connection.send(gameSessionData)
+	gameSessionData = connection.recv(1024)
+	gameSession = pickle.loads(gameSessionData)
+
+	print(gameSession.hostReady)
+	print(gameSession.clientReady)
+
 	while True:
 		connection.send(pieceData)
 		connection.recv(1024)
@@ -152,16 +195,20 @@ else:
 	clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	serverAddress = hostIP, port
 	clientSocket.connect(serverAddress)
-	while True:
-		dataRecieved = clientSocket.recv(4096)
-		dataInstance = pickle.loads(dataRecieved)
-		print(dataInstance.size)
-		print(type(dataInstance))
 
-player = Player()
-player.initBoard()
+	clientPlayer = Player()
+	clientPlayer.initBoard()
+	gameSession.clientReady = True
+	gameSessionData = pickle.dumps(gameSession)
+	clientSocket.send(gameSessionData)
+	gameSessionData = clientSocket.recv(1024)
+	gameSession = pickle.loads(gameSessionData)
 
+	print(gameSession.hostReady)
+	print(gameSession.clientReady)
 
-
-
-
+	# while True:
+	# 	dataRecieved = clientSocket.recv(1024)
+	# 	dataInstance = pickle.loads(dataRecieved)
+	# 	print(dataInstance.size)
+	# 	print(type(dataInstance))
