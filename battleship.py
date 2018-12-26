@@ -41,11 +41,13 @@ class Player:
 	pieces = [Carrier, Battleship, Submarine, Destroyer]
 
 	def __init__(self):
+		self.isTurn = False
+		self.unitsLeft = None
 		self.grid = numpy.zeros(shape=(10,10))
 		self.piecesPlaced = []
 	
 	def placePiece(self, piece, position):
-		if self.checkPosition(piece, position) and self.checkPieces(piece):
+		if self.checkPosition(piece, position) and self.checkOverlap(piece):
 			if piece.horizontal:
 				for y in range(position[1], position[1] + piece.size):
 					self.grid[position[0], y] = 1
@@ -53,7 +55,6 @@ class Player:
 				for x in range(position[0], position[0] + piece.size):
 					self.grid[x, position[1]] = 1
 			self.piecesPlaced.append(type(piece))
-
 
 	def checkPosition(self, piece, position):
 		if piece.horizontal:
@@ -74,13 +75,19 @@ class Player:
 					return False
 		return True
 
-	def checkPieces(self, piece):
+	def checkOverlap(self, piece):
 		if self.piecesPlaced.count(type(piece)) == 0:
 			return True
 		else:
 			print("This type of piece has already been placed.")
 			return False
 		#  return self.piecesPlaced.count(type(piece)) == 0
+
+	def countUnits(self):
+		count = 0
+		for piece in self.piecesPlaced:
+			count += piece.size
+		return count
 	
 	def initBoard(self):
 		for piece in Player.pieces:
@@ -89,6 +96,7 @@ class Player:
 				pos = self.getPosInput()
 				self.placePiece(piece(pos[2]), (pos[0], pos[1]))
 			print(self.grid)
+		self.unitsLeft = self.countUnits()
 
 	def getPosInput(self):
 		while True:
@@ -115,9 +123,6 @@ class Player:
 				continue
 			break
 		return position
-
-	def shoot(self):
-		pass
 
 	def getShotInput(self):
 		while True:
@@ -164,10 +169,11 @@ else:
 	print("Invalid arguments.")
 	sys.exit()
 
-piece = Piece(10, False)
-pieceData = pickle.dumps(piece)
+# End of classes
 
+isGameOver = False
 gameSession = GameSession()
+opponentGrid = numpy.zeros(shape=(10,10))
 
 if(isHost):
 	serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -180,16 +186,36 @@ if(isHost):
 
 	hostPlayer = Player()
 	hostPlayer.initBoard()
-	gameSession.hostReady = True
-	gameSessionData = pickle.dumps(gameSession)
-	connection.send(gameSessionData)
-	gameSessionData = connection.recv(4096)
-	gameSession = pickle.loads(gameSessionData)
+	hostPlayer.isTurn = True
 
-	print(gameSession.hostReady)
-	print(gameSession.clientReady)
+	while not(isGameOver):
+		while hostPlayer.isTurn:
+			shotPos = hostPlayer.getShotInput()
+			shotPosData = pickle.dumps(shotPos)
+			connection.send(shotPosData)
+			hitOrMissData = connection.recv(1024)
+			hitOrMiss = pickle.loads(hitOrMissData)
+			if hitOrMiss:
+				opponentGrid[shotPos[0]][shotPos[1]] = "H"
+				print(opponentGrid)
+				continue
+			else:
+				opponentGrid[shotPos[0]][shotPos[1]] = "*"
+				hostPlayer.isTurn = False
+				print(opponentGrid)
+				print("Waiting for other player")
+			
+		while not(hostPlayer.isTurn):
+			shotRecievedData = connection.recv(1024)
+			shotRecieved = pickle.loads(shotRecievedData)
+			if hostPlayer.grid[shotRecieved[0]][shotRecieved[1]] == 1:
+				connection.send(pickle.dumps(True))
+				hostPlayer.unitsLeft -= 1
+			else:
+				connection.send(pickle.dumps(False))
+	
 
-	connection.close()
+
 else:
 	clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	serverAddress = hostIP, port
@@ -197,17 +223,29 @@ else:
 
 	clientPlayer = Player()
 	clientPlayer.initBoard()
-	gameSession.clientReady = True
-	gameSessionData = pickle.dumps(gameSession)
-	clientSocket.send(gameSessionData)
-	gameSessionData = clientSocket.recv(4096)
-	gameSession = pickle.loads(gameSessionData)
 
-	print(gameSession.hostReady)
-	print(gameSession.clientReady)
-
-	# while True:
-	# 	dataRecieved = clientSocket.recv(1024)
-	# 	dataInstance = pickle.loads(dataRecieved)
-	# 	print(dataInstance.size)
-	# 	print(type(dataInstance))
+	while not(isGameOver):
+		while clientPlayer.isTurn:
+			shotPos = clientPlayer.getShotInput()
+			shotPosData = pickle.dumps(shotPos)
+			clientSocket.send(shotPosData)
+			hitOrMissData = clientSocket.recv(1024)
+			hitOrMiss = pickle.loads(hitOrMissData)
+			if hitOrMiss:
+				opponentGrid[shotPos[0]][shotPos[1]] = "H"
+				print(opponentGrid)
+				continue
+			else:
+				opponentGrid[shotPos[0]][shotPos[1]] = "*"
+				clientPlayer.isTurn = False
+				print(opponentGrid)
+				print("Waiting for other player")
+			
+		while not(clientPlayer.isTurn):
+			shotRecievedData = clientSocket.recv(1024)
+			shotRecieved = pickle.loads(shotRecievedData)
+			if clientPlayer.grid[shotRecieved[0]][shotRecieved[1]] == 1:
+				clientSocket.send(pickle.dumps(True))
+				clientPlayer.unitsLeft -= 1
+			else:
+				clientSocket.send(pickle.dumps(False))
