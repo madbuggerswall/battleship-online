@@ -1,6 +1,7 @@
-import socket
-import numpy
 import sys
+import socket
+import pickle
+import numpy
 
 class Piece:
 	def __init__(self, size, horizontal):
@@ -119,7 +120,8 @@ class Player:
 		return position
 
 class Game:
-	pass
+	def init(self, host, client):
+		pass
 
 	
 isHost = False
@@ -133,6 +135,9 @@ else:
 	print("Invalid arguments.")
 	sys.exit()
 
+piece = Piece(10, False)
+pieceData = pickle.dumps(piece)
+
 if(isHost):
 	serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	serverSocket.bind((socket.gethostname(), port))
@@ -140,17 +145,22 @@ if(isHost):
 	(connection, clientAddress) = serverSocket.accept()
 	print("Player connected! Address: ", clientAddress)
 	while True:
-		connection.sendall(b"Hello client")
+		connection.send(pieceData)
 		connection.recv(1024)
 	connection.close()
 else:
 	clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	serverAddress = hostIP, port
 	clientSocket.connect(serverAddress)
-
+	while True:
+		dataRecieved = clientSocket.recv(4096)
+		dataInstance = pickle.loads(dataRecieved)
+		print(dataInstance.size)
+		print(type(dataInstance))
 
 player = Player()
 player.initBoard()
+
 
 
 
