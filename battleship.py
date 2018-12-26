@@ -132,20 +132,25 @@ else:
 	print("Invalid arguments.")
 	sys.exit()
 
-serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-serverSocket.bind((socket.gethostname(), port))
-serverSocket.listen(1)
+if(isHost):
+	serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	serverSocket.bind((socket.gethostname(), port))
+	serverSocket.listen(1)
+	(connection, clientAddress) = serverSocket.accept()
+	print("Player connected! Address: ", clientAddress)
+	while True:
+		connection.sendall(b"Hello client")
+		connection.recv(1024)
+	connection.close()
+else:
+	clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	serverAddress = hostIP, port
+	clientSocket.connect(serverAddress)
 
-(clientSocket, clientAddress) = serverSocket.accept()
-print("Player connected! Address: ", clientAddress)
 
 player = Player()
 player.initBoard()
 
 
-# while True:
-# 	clientSocket.sendall(b"Hello client")
-# 	clientSocket.recv(1024)
-# clientSocket.close()
 
 
