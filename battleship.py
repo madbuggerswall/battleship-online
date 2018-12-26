@@ -139,7 +139,7 @@ class Player:
 			except: 
 				print("Inputs must be an integer.")
 				continue
-				
+
 			if position[0] > 9 or position[1] > 9:
 				print("Position outside of the grid")
 			break
@@ -196,11 +196,11 @@ if(isHost):
 			hitOrMissData = connection.recv(1024)
 			hitOrMiss = pickle.loads(hitOrMissData)
 			if hitOrMiss:
-				opponentGrid[shotPos[0]][shotPos[1]] = "H"
+				opponentGrid[shotPos[0]][shotPos[1]] = 8
 				print(opponentGrid)
 				continue
 			else:
-				opponentGrid[shotPos[0]][shotPos[1]] = "*"
+				opponentGrid[shotPos[0]][shotPos[1]] = 4
 				hostPlayer.isTurn = False
 				print(opponentGrid)
 				print("Waiting for other player")
@@ -232,11 +232,11 @@ else:
 			hitOrMissData = clientSocket.recv(1024)
 			hitOrMiss = pickle.loads(hitOrMissData)
 			if hitOrMiss:
-				opponentGrid[shotPos[0]][shotPos[1]] = "H"
+				opponentGrid[shotPos[0]][shotPos[1]] = 8
 				print(opponentGrid)
 				continue
 			else:
-				opponentGrid[shotPos[0]][shotPos[1]] = "*"
+				opponentGrid[shotPos[0]][shotPos[1]] = 4
 				clientPlayer.isTurn = False
 				print(opponentGrid)
 				print("Waiting for other player")
