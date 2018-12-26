@@ -3,6 +3,7 @@ import socket
 import pickle
 import numpy
 
+# Parent class for other pieces.
 class Piece:
 	def __init__(self, size, horizontal):
 		self.size = size
@@ -36,20 +37,21 @@ class Destroyer(Piece):
 	def __init__(self, horizontal):
 		Piece.__init__(self, Destroyer.size, horizontal)
 
-class Player:
 
+class Player:
+	# All pieces every player must place on board
 	pieces = [Carrier, Battleship, Submarine, Destroyer]
 
 	def __init__(self):
-		self.isTurn = False
-		self.unitsLeft = None
-		self.unitCount = None
-		self.totalHits = 0
+		self.isTurn = False			#	Turn to play
+		self.unitCount = None		#	Number of pieces as grid units.
+		self.unitsLeft = None		#	Total units - Shot units
+		self.totalHits = 0			#	Number of successful hits
 		self.grid = numpy.zeros(shape=(10,10))
-		self.piecesPlaced = []
+		self.piecesPlaced = []	#	To avoid placing the same units.
 	
 	def placePiece(self, piece, position):
-		if self.checkPosition(piece, position) and self.checkOverlap(piece):
+		if self.checkPosition(piece, position) and self.checkPieceRepetition(piece):
 			if piece.horizontal:
 				for y in range(position[1], position[1] + piece.size):
 					self.grid[position[0], y] = 1
@@ -58,6 +60,7 @@ class Player:
 					self.grid[x, position[1]] = 1
 			self.piecesPlaced.append(type(piece))
 
+	# Check if occuppied or out of grid boundaries.
 	def checkPosition(self, piece, position):
 		if piece.horizontal:
 			if (position[1] + piece.size) >= numpy.size(self.grid,0):
@@ -77,20 +80,22 @@ class Player:
 					return False
 		return True
 
-	def checkOverlap(self, piece):
+	# Check if any piece of same type is already placed.
+	def checkPieceRepetition(self, piece):
 		if self.piecesPlaced.count(type(piece)) == 0:
 			return True
 		else:
 			print("This type of piece has already been placed.")
 			return False
-		#  return self.piecesPlaced.count(type(piece)) == 0
 
+	# Returns the total number of squares occupied by the pieces.
 	def countUnits(self):
 		count = 0
 		for piece in self.piecesPlaced:
 			count += piece.size
 		return count
 	
+	# Place pieces one by one via user input.
 	def initBoard(self):
 		for piece in Player.pieces:
 			while self.piecesPlaced.count(piece) == 0:
@@ -101,6 +106,8 @@ class Player:
 		self.unitsLeft = self.countUnits()
 		self.unitCount = self.countUnits()
 
+	# Get position input for piece placement. (eg. 5,5,V)
+	# H: Horizontal V: Vertical
 	def getPosInput(self):
 		while True:
 			raw = input("Enter position as row,column,alignment: ")
@@ -126,7 +133,8 @@ class Player:
 				continue
 			break
 		return position
-
+	
+	# Get shot position input (eg. 5,5)
 	def getShotInput(self):
 		while True:
 			raw = input("Enter the shot coordinates as row,column: ")
@@ -147,23 +155,27 @@ class Player:
 				print("Position outside of the grid")
 			break
 		return position
-
 # End of classes
 
-def shootOnline(player, connection):
+# Handles shot send/recv operations.
+def shootByTurns(player, connection):
 	isGameOver = False
 	opponentGrid = numpy.zeros(shape=(10,10))
 
 	while not(isGameOver):
 		while player.isTurn:
+			# Get shoot position from player.
 			shotPos = player.getShotInput()
 
+			# Send position to opponent.
 			shotPosData = pickle.dumps(shotPos)
 			connection.send(shotPosData)
 
+			# Opponent sends back whether the sent position was a hit or not.
 			hitOrMissData = connection.recv(1024)
 			hitOrMiss = pickle.loads(hitOrMissData)
 
+			# If it is a hit player gets to shoot one more time.
 			if hitOrMiss:
 				opponentGrid[shotPos[0]][shotPos[1]] = 8
 				print(opponentGrid)
@@ -171,8 +183,10 @@ def shootOnline(player, connection):
 				if player.totalHits >= player.unitCount:
 					print("You won!")
 					isGameOver = True
+					break
 				continue
-			else:
+			else: 
+				# If it's not a hit, player's turn ends.
 				opponentGrid[shotPos[0]][shotPos[1]] = 4
 				player.isTurn = False
 				print(opponentGrid)
@@ -182,22 +196,24 @@ def shootOnline(player, connection):
 			shotRecievedData = connection.recv(1024)
 			shotRecieved = pickle.loads(shotRecievedData)
 			
+			# Check if shot made by opponent was a hit or not, send back the result.
 			if player.grid[shotRecieved[0]][shotRecieved[1]] == 1:
 				player.grid[shotRecieved[0]][shotRecieved[1]] = 8
 				player.unitsLeft -= 1
 				if player.unitsLeft <= 0:
 					print("You lost!")
 					isGameOver = True
+					break
 				connection.send(pickle.dumps(True))
 			else:
+				# If it's not a hit, player's turn begins.
 				player.grid[shotRecieved[0]][shotRecieved[1]] = 4
 				connection.send(pickle.dumps(False))
 				player.isTurn = True
 			print(player.grid)
 
-#	Main
-
-isHost = False
+# Handling the command line arguments
+isHost = False 
 if len(sys.argv) == 2:
 	isHost = True
 	port = int(sys.argv[1])
@@ -208,7 +224,7 @@ else:
 	print("Invalid arguments.")
 	sys.exit()
 
-
+# Host player
 if(isHost):
 	serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	serverSocket.bind((socket.gethostname(), port))
@@ -222,9 +238,10 @@ if(isHost):
 	hostPlayer.initBoard()
 	hostPlayer.isTurn = True
 
-	shootOnline(hostPlayer, connection)
+	shootByTurns(hostPlayer, connection)
 	connection.close()
 else:
+# Client player
 	clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	serverAddress = hostIP, port
 	clientSocket.connect(serverAddress)
@@ -232,5 +249,5 @@ else:
 	clientPlayer = Player()
 	clientPlayer.initBoard()
 
-	shootOnline(clientPlayer, clientSocket)
+	shootByTurns(clientPlayer, clientSocket)
 	clientSocket.close()
