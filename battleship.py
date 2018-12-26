@@ -2,6 +2,7 @@ import sys
 import socket
 import pickle
 import numpy
+from enum import Enum
 
 # Parent class for other pieces.
 class Piece:
@@ -99,10 +100,10 @@ class Player:
 	def initBoard(self):
 		for piece in Player.pieces:
 			while self.piecesPlaced.count(piece) == 0:
-				print("Place ", piece.name, "(", piece.size, ") on grid")
+				print("\nPlace ", piece.name, "(", piece.size, ") on grid.")
 				pos = self.getPosInput()
 				self.placePiece(piece(pos[2]), (pos[0], pos[1]))
-			print(self.grid)
+			print("\n", self.grid)
 		self.unitsLeft = self.countUnits()
 		self.unitCount = self.countUnits()
 
@@ -176,21 +177,26 @@ def shootByTurns(player, connection):
 			hitOrMiss = pickle.loads(hitOrMissData)
 
 			# If it is a hit player gets to shoot one more time.
-			if hitOrMiss:
+			if hitOrMiss == 1:
 				opponentGrid[shotPos[0]][shotPos[1]] = 8
-				print(opponentGrid)
+				print("Opponent Grid")
+				print(opponentGrid, "\n")
 				player.totalHits += 1
 				if player.totalHits >= player.unitCount:
 					print("You won!")
 					isGameOver = True
 					break
 				continue
-			else: 
+			elif hitOrMiss == 0: 
 				# If it's not a hit, player's turn ends.
 				opponentGrid[shotPos[0]][shotPos[1]] = 4
 				player.isTurn = False
+				print("\nOpponent Grid\n")
 				print(opponentGrid)
-				print("Waiting for other player")
+				print("\nWaiting for other player.\n")
+			else:
+				print("Shot already made.")
+				continue
 			
 		while not(player.isTurn):
 			shotRecievedData = connection.recv(1024)
@@ -204,13 +210,18 @@ def shootByTurns(player, connection):
 					print("You lost!")
 					isGameOver = True
 					break
-				connection.send(pickle.dumps(True))
+				connection.send(pickle.dumps(1))
+			elif player.grid[shotRecieved[0]][shotRecieved[1]] == 4:
+				connection.send(pickle.dumps(2))
+			elif player.grid[shotRecieved[0]][shotRecieved[1]] == 8:
+				connection.send(pickle.dumps(2))
 			else:
 				# If it's not a hit, player's turn begins.
 				player.grid[shotRecieved[0]][shotRecieved[1]] = 4
-				connection.send(pickle.dumps(False))
+				connection.send(pickle.dumps(0))
 				player.isTurn = True
-			print(player.grid)
+			print("Your Grid")			
+			print(player.grid, "\n")
 
 # Handling the command line arguments
 isHost = False 
@@ -230,9 +241,9 @@ if(isHost):
 	serverSocket.bind((socket.gethostname(), port))
 	serverSocket.listen(1)
 
-	print("Waiting for player...")
+	print("Waiting for player...\n")
 	(connection, clientAddress) = serverSocket.accept()
-	print("Player connected! Address: ", clientAddress)
+	print("Player connected! Address: ", clientAddress, "\n")
 
 	hostPlayer = Player()
 	hostPlayer.initBoard()
