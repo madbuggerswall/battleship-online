@@ -161,7 +161,6 @@ class Player:
 
 #	Colorfully display grid
 def displayGrid(grid):
-	print()
 	for col in range (0, grid.shape[1]):
 		print("  ", col, end='')
 	print()
@@ -197,7 +196,7 @@ def shootByTurns(player, connection, hostName,opponentName):
 			# If it is a hit player gets to shoot one more time.
 			if hitOrMiss == 1:
 				opponentGrid[shotPos[0]][shotPos[1]] = 8
-				print("\n", opponentName, "'s Grid", "\n")
+				print("\n", opponentName, "'s Grid", "\n", sep="")
 				displayGrid(opponentGrid)
 				player.totalHits += 1
 				if player.totalHits >= player.unitCount:
@@ -209,9 +208,9 @@ def shootByTurns(player, connection, hostName,opponentName):
 				# If it's not a hit, player's turn ends.
 				opponentGrid[shotPos[0]][shotPos[1]] = 4
 				player.isTurn = False
-				print("\n", opponentName, "'s Grid", "\n")
+				print("\n", opponentName, "'s Grid", "\n", sep="")
 				displayGrid(opponentGrid)
-				print("\nWaiting for", opponentName, ".\n")
+				print("\nWaiting for ", opponentName, ".\n", sep="")
 			else:
 				print("Shot already made.")
 				continue
@@ -236,7 +235,7 @@ def shootByTurns(player, connection, hostName,opponentName):
 				player.grid[shotRecieved[0]][shotRecieved[1]] = 4
 				connection.send(pickle.dumps(0))
 				player.isTurn = True
-			print("\n", hostName,"'s Grid", "\n")
+			print("\n", hostName,"'s Grid", "\n", sep="")
 			displayGrid(player.grid)
 
 # Handling the command line arguments
