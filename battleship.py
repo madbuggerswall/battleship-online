@@ -211,7 +211,7 @@ def shootByTurns(player, connection, hostName,opponentName):
 				player.isTurn = False
 				print("\n", opponentName, "'s Grid", "\n")
 				displayGrid(opponentGrid)
-				print("\nWaiting for ", opponentName, ".\n")
+				print("\nWaiting for", opponentName, ".\n")
 			else:
 				print("Shot already made.")
 				continue
@@ -224,7 +224,7 @@ def shootByTurns(player, connection, hostName,opponentName):
 				player.grid[shotRecieved[0]][shotRecieved[1]] = 8
 				player.unitsLeft -= 1
 				if player.unitsLeft <= 0:
-					print(hostName," lost!")
+					print(hostName,"lost!")
 					isGameOver = True
 				connection.send(pickle.dumps(1))
 			elif player.grid[shotRecieved[0]][shotRecieved[1]] == 4:
@@ -236,7 +236,7 @@ def shootByTurns(player, connection, hostName,opponentName):
 				player.grid[shotRecieved[0]][shotRecieved[1]] = 4
 				connection.send(pickle.dumps(0))
 				player.isTurn = True
-			print("\n", hostName, "'s Grid", "\n")
+			print("\n", hostName,"'s Grid", "\n")
 			displayGrid(player.grid)
 
 # Handling the command line arguments
@@ -266,8 +266,8 @@ if(isHost):
 	connection.send(pickle.dumps(hostName))
 	opponentName = pickle.loads(connection.recv(1024))
 
-	print("Player connected! Address: ", clientAddress, "\n")
-	print("Opponent name: ", opponentName, "\n")
+	print("Player connected! Address:", clientAddress, "\n")
+	print("Opponent name:", opponentName, "\n")
 
 	hostPlayer = Player()
 	hostPlayer.initBoard()
@@ -284,8 +284,8 @@ else:
 	clientSocket.send(pickle.dumps(hostName))
 	opponentName = pickle.loads(clientSocket.recv(1024))
 	
-	print("Player connected! Address: ", serverAddress, "\n")
-	print("Opponent name: ", opponentName, "\n")
+	print("Player connected! Address:", serverAddress, "\n")
+	print("Opponent name:", opponentName, "\n")
 
 	clientPlayer = Player()
 	clientPlayer.initBoard()
